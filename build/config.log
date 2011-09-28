@@ -1,0 +1,51 @@
+# project noname (0.0.1) configured on Wed Sep 28 02:53:39 2011 by
+# waf 1.5.16 (abi 7, python 20702f0 on darwin)
+# using /opt/local/bin/node-waf configure
+#
+
+----------------------------------------
+Checking for program g++ or c++
+  find program=['g++', 'c++'] paths=[] var='CXX'
+  -> '/usr/bin/g++'
+
+----------------------------------------
+Checking for program cpp
+  find program=['cpp'] paths=[] var='CPP'
+  -> '/usr/bin/cpp'
+
+----------------------------------------
+Checking for program ar
+  find program=['ar'] paths=[] var='AR'
+  -> '/usr/bin/ar'
+
+----------------------------------------
+Checking for program ranlib
+  find program=['ranlib'] paths=[] var='RANLIB'
+  -> '/usr/bin/ranlib'
+
+----------------------------------------
+Checking for g++ 
+ok 
+
+----------------------------------------
+Checking for program gcc or cc
+  find program=['gcc', 'cc'] paths=[] var='CC'
+  -> '/usr/bin/gcc'
+
+----------------------------------------
+Checking for gcc 
+ok 
+
+----------------------------------------
+Checking for node path 
+ok /usr/local/lib/node
+
+----------------------------------------
+Checking for node prefix 
+ok /opt/local
+
+----------------------------------------
+Checking for vips-7.26
+pkg-config --errors-to-stdout --print-errors --cflags --libs vips-7.26
+-D_REENTRANT -fopenmp -I/usr/local/Cellar/vips/7.26.3/include -I/usr/local/Cellar/glib/2.28.8/include/glib-2.0 -I/usr/local/Cellar/glib/2.28.8/lib/glib-2.0/include -I/usr/local/Cellar/gettext/0.18.1.1/include -I/usr/local/Cellar/glib/2.28.8/include -I/usr/local/Cellar/imagemagick/HEAD/include/ImageMagick -I/opt/local/include/libxml2 -I/opt/local/include -I/opt/local/include/libpng14  -L/usr/local/Cellar/vips/7.26.3/lib -L/opt/local/lib -L/usr/local/Cellar/glib/2.28.8/lib -L/usr/local/Cellar/gettext/0.18.1.1/lib -L/usr/local/Cellar/imagemagick/HEAD/lib -lvips -ltiff -lz -ljpeg -lm -lstdc++ -lgmodule-2.0 -lxml2 -lgobject-2.0 -lMagickWand -llcms2 -lpng14 -lgthread-2.0 -lglib-2.0 -lintl -lMagickCore  
+yes
