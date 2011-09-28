@@ -1,0 +1,24 @@
+{
+  "name": "node-vips",
+  "description": "Vips wrapper for node.js",
+  "version": "0.0.1",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dosx/node-vips.git"
+  },
+  "dependencies": {
+    "nodeunit": "=0.5.5"
+  },
+  "devDependencies": {
+  },
+  "engines": {
+    "node": "0.4",
+    "npm": "*"
+  },
+  "author": "erlyco <dev@erly.com>",
+  "main": "beer8",
+  "scripts": {
+    "test": "nodeunit test/*.js"
+  }
+}
