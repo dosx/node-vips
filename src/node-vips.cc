@@ -337,7 +337,7 @@ int identify (eio_req *req) {
   IMAGE *img  = im_open(*src_path, "r");
 
   char* res = new char[32];
-  im_meta_get_string(img, "Colorspace", &res);
+  im_meta_get_string(img, "colorspace", &res);
   printf("result: %s\n", res);
   delete res;
 
@@ -358,11 +358,12 @@ int identify_callback (eio_req *req) {
   
   Local<Value> argv[2];
   argv[0] = Local<Value>::New(Null());
+  argv[1] = Integer::New(req->result);
 
   TryCatch try_catch;
-
+  
   data->cb->Call(Context::GetCurrent()->Global(), 2, argv);
-
+  
   if (try_catch.HasCaught()) {
     FatalException(try_catch);
   }
@@ -408,12 +409,10 @@ Handle<Value> Identify(const Arguments& args) {
   identify_data->src_file = src;
 
   Local<Function> cb = Local<Function>::Cast(args[1]);
-  identify_data->cb    = Persistent<Function>::New(cb);
+  identify_data->cb  = Persistent<Function>::New(cb);
 
   eio_custom(identify, EIO_PRI_DEFAULT, identify_callback, identify_data);
   ev_ref(EV_DEFAULT_UC);
-
-  delete identify_data;
 
   return scope.Close(String::New("identify"));
 }
