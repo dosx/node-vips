@@ -28,7 +28,7 @@ def configure(conf):
 
 def build(bld):
   node_vips = bld.new_task_gen("cxx", "shlib", "node_addon")
-  node_vips.cxxflags =  [ "-g" ]
+  #node_vips.cxxflags =  [ "-g" ]
   #node_vips.cflags = [ "" ]
   node_vips.target = "node-vips"
   node_vips.source = [ 'src/node-vips.cc', 'src/transform.cc' ]
