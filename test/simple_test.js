@@ -1,89 +1,85 @@
+// Copyright Erly Inc 2011, All Rights Reserved
+// Authors: Bo Wang, Walt Lin
+//
+// Tests for node-vips.cc
+
 var testCase = require('nodeunit').testCase;
 var fs = require('fs');
 var vips = require('../node-vips');
 
-module.exports = testCase({
-  test_resize0: function(assert) {
-    console.log("js: console.log(before vips.resize 0)");
-    vips.resize("test/input.jpg", 960, 600, "test/output1.jpg", function(){
-      console.log("js: console.log(after vips.resize 0)");
-      assert.done();
-    });
-  },
-/*
-  test_resize1: function(assert) {
-    fs.readFile('test/input.jpg', function(error, data) {
-      if (error) {
-        assert.ok(false, "failed to open input file");
-        assert.done();
-      }
-      else {
-        console.log("js: console.log(before vips.resize 1)");
-        vips.resize(data, 200, 100, "test/output1.jpg", function(){
-          console.log("js: console.log(after vips.resize 1)");
-        });
-      assert.done();
-      }
-    });
-  },
-  test_resize2: function(assert) {
-    fs.readFile('test/input.jpg', function(error, data) {
-      if (error) {
-        assert.ok(false, "failed to open input file");
-        assert.done();
-      }
-      else {
-        console.log("js: console.log(before vips.resize 2)");
-        vips.resize(data, 960, 600, "test/output2.jpg", function(){
-          console.log("js: console.log(after vips.resize 2)");
-        });
-      assert.done();
-      }
-    });
-  },
-*/
-  test_rotate0: function(assert) {
-    console.log("js: console.log(before vips.rotate 0)");
-    vips.rotate("test/input.jpg", 90, "test/output2.jpg", function(){
-      console.log("js: console.log(after vips.rotate 0)");
-      assert.done();
-    });
-  },
-/*
-  test_rotate1: function(assert) {
-    fs.readFile('test/output1.jpg', function(error, data) {
-      if (error) {
-        assert.ok(false, "failed to open input file");
-        assert.done();
-      }
-      else {
-        vips.rotate(data, 90, "test/output2.jpg");
-        assert.done();
-      }
-    });
-  },
-*/
-  test_identity0: function(assert) {
-    console.log("js: console.log(before vips.identity 0)");
-    vips.identify("test/input.jpg", function(){
-      console.log("js: console.log(after vips.identity 0)");
-      assert.done();
-    });
-  },
-/*
-  test_identify1: function(assert) {
-    fs.readFile('test/output2.jpg', function(error, data) {
-      if (error) {
-        assert.ok(false, "failed to open input file");
-        assert.done();
-      }
-      else {
-        var identity = vips.identify(data);
-        console.log(identity);
-        assert.done();
-      }
-    });
-  },
-*/
-});
+var input1 = 'test/input.jpg';
+var input2 = 'test/input2.jpg';
 
+// Return a path for an output file.
+var nextOutput = (function() {
+  var id = 0;
+  return function() { return 'test/output' + id++ + '.jpg'; }
+})();
+
+module.exports = testCase({
+  test_resize_basic: function(assert) {
+    vips.resize(input1, nextOutput(), 227, 170, false, function(err){
+      console.log('in resize callback js');
+      assert.ok(!err, "unexpected error: " + err);
+      assert.done();
+    });
+  },
+  test_resize_with_auto_orient: function(assert) {
+    vips.resize(input1, nextOutput(), 170, 170, true, function(err){
+      console.log('in resize callback js');
+      assert.ok(!err, "unexpected error: " + err);
+      assert.done();
+    });
+  },
+  test_resize_with_auto_orient2: function(assert) {
+    vips.resize(input2, nextOutput(), 227, 170, false, function(err){
+      console.log('in resize callback js');
+      assert.ok(!err, "unexpected error: " + err);
+      assert.done();
+    });
+  },
+  test_resize_notfound: function(assert) {
+    vips.resize("test/NOTFOUND", nextOutput(), 100, 100, true, function(err){
+      console.log("error: " + err);
+      assert.ok(err, "expected error but did not get one");
+      assert.done();
+    });
+  },
+  test_resize_notfound_no_auto_orient: function(assert) {
+    vips.resize("test/NOTFOUND", nextOutput(), 100, 100, false, function(err){
+      console.log("error: " + err);
+      assert.ok(err, "expected error but did not get one");
+      assert.done();
+    });
+  },
+
+  // Note: this test will crash if vips is compiled with imagemagick support
+  // because imagemagick crashes when called from libeio.  If vips does not
+  // have imagemagick support, this test will pass.
+  test_resize_bad_input: function(assert) {
+    vips.resize("test/bogus.jpg", nextOutput(), 100, 100, false, function(err){
+      assert.ok(err, "expected error but did not get one");
+      assert.done();
+    });
+  },
+
+  test_rotate_basic: function(assert) {
+    console.log("js: console.log(before vips.rotate 0)");
+    vips.rotate(input1, nextOutput(), 90, function(err){
+      assert.ok(!err, "unexpected error: " + err);
+      assert.done();
+    });
+  },
+  test_rotate_error_not_found: function(assert) {
+    vips.rotate("test/NOTFOUND", nextOutput(), 90, function(err){
+      assert.ok(err, "expected error but did not get one");
+      assert.done();
+    });
+  },
+  test_rotate_error_bad_degrees: function(assert) {
+    vips.rotate(input1, nextOutput(), 93, function(err){
+      assert.ok(err, "expected error but did not get one");
+      assert.done();
+    });
+  },
+});

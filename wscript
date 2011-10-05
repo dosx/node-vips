@@ -22,19 +22,20 @@ def configure(conf):
   conf.check_cfg(package='vips-7.26',
                  args='--cflags --libs',
                  uselib_store='Vips')
+  conf.check_cfg(package='exiv2',
+                 args='--cflags --libs',
+                 uselib_store='Exiv2')
 
 def build(bld):
   node_vips = bld.new_task_gen("cxx", "shlib", "node_addon")
-  #node_vips.cxxflags =  [ "-g" ]
+  node_vips.cxxflags =  [ "-g" ]
   #node_vips.cflags = [ "" ]
   node_vips.target = "node-vips"
-  node_vips.source = """
-    src/node-vips.cc
-  """
-  node_vips.includes = '/use/local/include/glib-2.0'
-  node_vips.uselib = [ "Vips" ]
+  node_vips.source = [ 'src/node-vips.cc', 'src/transform.cc' ]
+  node_vips.includes = [ '/usr/include/glib-2.0',
+                         '/usr/lib/x86_64-linux-gnu/glib-2.0/include',
+                        ]
+  node_vips.uselib = [ "Vips", "Exiv2" ]
 
 def test(t):
   Utils.exec_command('make test')
-
-

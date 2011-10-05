@@ -1,432 +1,145 @@
+// Copyright Erly Inc 2011, All Rights Reserved
+// Authors: Bo Wang, Walt Lin
+//
+// Node native extension to wrap the VIPS library for image manipulation.
+//
+// Javascript functions exported:
+//   resize(input_path, output_path, new_x, new_y, auto_orient, callback)
+//   rotate(input_path, output_path, degrees, callback)
+// output_path can have an optional ":jpeg_quality" appended to it.
+//
+// Both callbacks take just an Error object.  The functions will reject
+// images they cannot open.
+
 #include <node.h>
-#include <node_version.h>
-#include <node_buffer.h>
-#include <ctype.h>
-#include <string.h>
-#include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <vips/vips.h>
+#include <string>
+
+#include "transform.h"
 
 using namespace v8;
 using namespace node;
 
 namespace {
-/*
-struct ResizeData {
-  Persistent<Object>   buffer;
-  Persistent<String>   path;
+
+// Macros for checking arguments.
+
+#define REQ_FUN_ARG(I, VAR)                                             \
+  if (args.Length() <= (I) || !args[I]->IsFunction())                   \
+    return ThrowException(Exception::TypeError(		                \
+                  String::New("Argument " #I " must be a function")));  \
+  Local<Function> VAR = Local<Function>::Cast(args[I])
+#define REQ_NUM_ARG(I, VAR)                                             \
+  if (args.Length() <= (I) || !args[I]->IsNumber())                     \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be a number")));    \
+  int VAR = args[I]->Int32Value()
+#define REQ_STR_ARG(I, VAR)                                             \
+  if (args.Length() <= (I) || !args[I]->IsString())                     \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be a string")));    \
+  Local<String> VAR = args[I]->ToString()
+#define REQ_BOOL_ARG(I, VAR)                                            \
+  if (args.Length() <= (I) || !args[I]->IsBoolean())                    \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be a boolean")));   \
+  bool VAR = args[I]->BooleanValue()
+
+
+
+// Data needed for a call to Transform.
+// If cols or rows is <= 0, no resizing is done. 
+// rotate_degrees must be one of 0, 90, 180, or 270.
+struct TransformCall {
+  int cols;              // resize to this many columns
+  int rows;              // and this many rows
+  int rotate_degrees;    // rotate image by this many degrees
+  bool auto_orient;
+  std::string src_path;
+  std::string dst_path;
+  std::string err_msg;
   Persistent<Function> cb;
-  int cols;
-  int rows;
-};
-*/
 
-
-struct ResizeData {
-  Persistent<String>   src_file;
-  Persistent<String>   dst_file;
-  Persistent<Function> cb;
-  int cols;
-  int rows;
+  TransformCall() : cols(-1), rows(-1), rotate_degrees(0), auto_orient(false) {}
 };
 
-int resize (eio_req *req) {
-
-  ResizeData *data = (ResizeData*) req->data;
-
-/*
-  void* img  = Buffer::Data(data->buffer);
-  int length = Buffer::Length(data->buffer);
-  String::Utf8Value path_str(data->path);
-  printf("output = %s\n", *path_str);
-*/
-
-  String::Utf8Value src_path(data->src_file);
-  String::Utf8Value dst_path(data->dst_file);
-
-  IMAGE *img_in  = im_open(*src_path, "r");
-
-  IMAGE *img_out = im_open(*dst_path, "w");
-
-  // Note: im_resize_linear is marked as deprecated in vips-7.26, 
-  //       it is easier to use.
-  //       This method locates at libvips/deprecated/im_resize_linear.c
-  //       The list of functions I've tried:
-  //        - im_subsample
-  //        - im_rightshift_size
-  //        - im_shrink
-  //        - im_affinei
-  //        - im_affinei_all
-  // if( im_resize_linear(img_in, img_out, data->cols, data->rows) ) {
-  //   printf("[error] failed to resize image %s\n", *src_path);
-  // }
-
-  double xshrink = (double)img_in->Xsize / (double)data->cols;
-  double yshrink = (double)img_in->Ysize / (double)data->rows;
-  if( im_shrink(img_in, img_out, xshrink, yshrink) ) {
-    printf("[error] failed to resize image %s\n", *src_path);
-  }
-
-  if( im_close(img_in) ) {
-    printf("[error] failed to close image %s\n", *src_path);
-  }
-
-  if( im_close(img_out) ) {
-    printf("[error] failed to close image %s\n", *dst_path);
-  }
-
-  return 0;
+int EIO_Transform(eio_req *req) {
+  TransformCall* t = static_cast<TransformCall*>(req->data);
+  return DoTransform(t->cols, t->rows, t->rotate_degrees, t->auto_orient,
+		     t->src_path, t->dst_path, &t->err_msg);
 }
 
-int resize_callback (eio_req *req) {
-
+// Done function that invokes a callback with one arg: an Error (or NULL).
+int TransformDone(eio_req *req) {
   HandleScope scope;
-
+  TransformCall *c = static_cast<TransformCall*>(req->data);
   ev_unref(EV_DEFAULT_UC);
   
-  ResizeData *data = (ResizeData*)req->data;
-  
-  Local<Value> argv[2];
-  argv[0] = Local<Value>::New(Null());
-  argv[1] = Integer::New(req->result);
+  Local<Value> argv[1];
+  if (!c->err_msg.empty()) {  // req->result is NOT set correctly
+    // Set up an error object.
+    argv[0] = String::New(c->err_msg.data(), c->err_msg.size());
+  } else {
+    argv[0] = Local<Value>::New(Null());
+  }
 
   TryCatch try_catch;
-
-  data->cb->Call(Context::GetCurrent()->Global(), 2, argv);
-  
+  c->cb->Call(Context::GetCurrent()->Global(), 1, argv);
   if (try_catch.HasCaught()) {
     FatalException(try_catch);
   }
   
-  // data->buffer.Dispose();
-  // data->path.Dispose();
-  data->src_file.Dispose();
-  data->dst_file.Dispose();
-  data->cb.Dispose();
-  
-  delete data;
-  
+  c->cb.Dispose();  
+  delete c;
   return 0;
 }
 
-Handle<Value> Resize(const Arguments& args) {
-
+// ResizeAsync(input_path, output_path, new_x, new_y, auto_orient, callback)
+Handle<Value> ResizeAsync(const Arguments& args) {
   HandleScope scope;
-/*
-  if (args.Length() < 5) {
-      return ThrowException(Exception::Error(
-        String::New("Not enough parameters: resize(image_buffer, new_x_pixels, new_y_pixels, output_path, callback)")
-      ));
-  } else if (!args[1]->IsNumber() || !args[2]->IsNumber()) {
-      return ThrowException(Exception::Error(
-        String::New("In resize(image_buffer, new_x_pixels, new_y_pixels, output_path, callback), new_x_pixels and new_y_pixels must be Number.")
-      ));
-  } else if (!Buffer::HasInstance(args[0])) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(image_buffer, new_x_pixels, new_y_pixels, output_path, callback), image_buffer must be a Buffer.")
-    ));
-  } else if (!args[3]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(image_buffer, new_x_pixels, new_y_pixels, output_path, callback), output_path must be a String.")
-    ));
-  } else if (!args[4]->IsFunction()) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(image_buffer, new_x_pixels, new_y_pixels, output_path, callback), callback must be a Function.")
-    ));
-  }
-*/
+  REQ_STR_ARG(0, input_path);
+  REQ_STR_ARG(1, output_path);
+  REQ_NUM_ARG(2, new_x_px);
+  REQ_NUM_ARG(3, new_y_px);
+  REQ_BOOL_ARG(4, auto_orient);
+  REQ_FUN_ARG(5, cb);
 
-  if (args.Length() < 5) {
-      return ThrowException(Exception::Error(
-        String::New("Not enough parameters: resize(input_path, new_x_pixels, new_y_pixels, output_path, callback)")
-      ));
-  } else if (!args[0]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(input_path, new_x_pixels, new_y_pixels, output_path, callback), input_path must be a Buffer.")
-    ));
-  } else if (!args[1]->IsNumber() || !args[2]->IsNumber()) {
-      return ThrowException(Exception::Error(
-        String::New("In resize(input_path, new_x_pixels, new_y_pixels, output_path, callback), new_x_pixels and new_y_pixels must be Number.")
-      ));
-  } else if (!args[3]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(input_path, new_x_pixels, new_y_pixels, output_path, callback), output_path must be a String.")
-    ));
-  } else if (!args[4]->IsFunction()) {
-    return ThrowException(Exception::Error(
-      String::New("In resize(input_path, new_x_pixels, new_y_pixels, output_path, callback), callback must be a Function.")
-    ));
-  }
+  TransformCall *c = new TransformCall;
+  c->cols = new_x_px;
+  c->rows = new_y_px;
+  c->auto_orient = auto_orient;
+  c->src_path = *String::Utf8Value(input_path);
+  c->dst_path = *String::Utf8Value(output_path);
+  c->cb = Persistent<Function>::New(cb);
 
-
-  ResizeData *resize_data = new ResizeData();
-
-/*
-  // Make a Persistent point to buffer and path
-  Persistent<Object> buffer = Persistent<Object>::New(args[0]->ToObject());
-  Persistent<String> path = Persistent<String>::New(args[3]->ToString());
-  int size = Buffer::Length(buffer);
-  printf("size = %d\n", size);
-*/
-  // Create a persistent reference to the callback function,
-  // otherwise we wouldn't be able to invoke the callback function
-  // later outside the scope of this function
-  Local<Function> cb = Local<Function>::Cast(args[4]);
-  resize_data->cb    = Persistent<Function>::New(cb);
-
-  int cols = args[1]->Int32Value();
-  int rows = args[2]->Int32Value();
-
-/*
-  resize_data->buffer  = buffer;
-  resize_data->path    = path;
-*/
-  resize_data->cols    = cols;
-  resize_data->rows    = rows;
-
-  Persistent<String> src = Persistent<String>::New(args[0]->ToString());
-  Persistent<String> dst = Persistent<String>::New(args[3]->ToString());
-  resize_data->src_file = src;
-  resize_data->dst_file = dst;
-/*
-  eio_req *req = new eio_req();
-  req->data = resize_data;
-  resize(req);
-*/
-
-  eio_custom(resize, EIO_PRI_DEFAULT, resize_callback, resize_data);
+  eio_custom(EIO_Transform, EIO_PRI_DEFAULT, TransformDone, c);
   ev_ref(EV_DEFAULT_UC);
-
   return Undefined();
 }
 
-struct RotateData {
-  Persistent<String>   src_file;
-  Persistent<String>   dst_file;
-  Persistent<Function> cb;
-  int degrees;
-};
-
-int rotate (eio_req *req) {
-
-  RotateData *data = (RotateData*) req->data;
-
-  String::Utf8Value src_path(data->src_file);
-  String::Utf8Value dst_path(data->dst_file);
-
-  IMAGE *img_in  = im_open(*src_path, "r");
-
-  IMAGE *img_out = im_open(*dst_path, "w");
-
-  int degrees = data->degrees % 360;
-
-  int error_code = 0;
-
-  switch(degrees) {
-    case 0  : break;
-    case 90 : error_code = im_rot90 (img_in, img_out);
-              break;
-    case 180: error_code = im_rot180(img_in, img_out);
-              break;
-    case 270: error_code = im_rot270(img_in, img_out);
-              break;
-    default : printf("[warning] rotation skipped because of illegal degrees\n");
-              break;
-  }
-
-  if(error_code) {
-    printf("[error] encountered an error when rotating %s\n", *src_path);
-  }
-
-  if( im_close(img_in) ) {
-    printf("[error] failed to close image %s\n", *src_path);
-  }
-
-  if( im_close(img_out) ) {
-    printf("[error] failed to close image %s\n", *dst_path);
-  }
-  return 0;
-}
-
-int rotate_callback (eio_req *req) {
-
+// RotateAsync(input_path, output_path, degrees, callback)
+Handle<Value> RotateAsync(const Arguments& args) {
   HandleScope scope;
+  REQ_STR_ARG(0, input_path);
+  REQ_STR_ARG(1, output_path);
+  REQ_NUM_ARG(2, degrees);
+  REQ_FUN_ARG(3, cb);
 
-  ev_unref(EV_DEFAULT_UC);
+  TransformCall *c = new TransformCall;
+  c->rotate_degrees = degrees;
+  c->src_path = *String::Utf8Value(input_path);
+  c->dst_path = *String::Utf8Value(output_path);
+  c->cb = Persistent<Function>::New(cb);
   
-  RotateData *data = (RotateData*)req->data;
-  
-  Local<Value> argv[2];
-  argv[0] = Local<Value>::New(Null());
-  argv[1] = Integer::New(req->result);
-
-  TryCatch try_catch;
-
-  data->cb->Call(Context::GetCurrent()->Global(), 2, argv);
-
-  if (try_catch.HasCaught()) {
-    FatalException(try_catch);
-  }
-  
-  data->src_file.Dispose();
-  data->dst_file.Dispose();
-  data->cb.Dispose();
-  
-  delete data;
-  
-  return 0;
-}
-
-Handle<Value> Rotate(const Arguments& args) {
-  HandleScope scope;
-
-  if (args.Length() < 3) {
-    return ThrowException(Exception::Error(
-      String::New("Not enough parameters: rotate(input_path, degree, output_path, callback)")
-    ));
-  } else if (!args[0]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In rotate(input_path, degree, output_path, callback), input_path must be a Buffer.")
-    ));
-  } else if (!args[1]->IsNumber()) {
-    return ThrowException(Exception::Error(
-      String::New("In rotate(input_path, degree, output_path, callback), degree must be a Number.")
-    ));
-  } else if (!args[2]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In rotate(input_path, degree, output_path, callback), output_path must be a String.")
-    ));
-  } else if (!args[3]->IsFunction()) {
-    return ThrowException(Exception::Error(
-      String::New("In rotate(input_path, degree, output_path, callback), callback must be a Function.")
-    ));
-  }
-
-  int degrees = args[1]->Int32Value();
-
-  RotateData *rotate_data = new RotateData();
-
-  Persistent<String> src = Persistent<String>::New(args[0]->ToString());
-  Persistent<String> dst = Persistent<String>::New(args[2]->ToString());
-  rotate_data->src_file = src;
-  rotate_data->dst_file = dst;
-  rotate_data->degrees  = degrees;
-  
-  Local<Function> cb = Local<Function>::Cast(args[3]);
-  rotate_data->cb    = Persistent<Function>::New(cb);
-
-  eio_custom(rotate, EIO_PRI_DEFAULT, rotate_callback, rotate_data);
+  eio_custom(EIO_Transform, EIO_PRI_DEFAULT, TransformDone, c);
   ev_ref(EV_DEFAULT_UC);
-
   return Undefined();
 }
 
-struct IdentifyData {
-  Persistent<String>   src_file;
-  Persistent<Function> cb;
-};
-
-int identify (eio_req *req) {
-
-  IdentifyData *data = (IdentifyData*) req->data;
-
-  String::Utf8Value src_path(data->src_file);
-
-  IMAGE *img  = im_open(*src_path, "r");
-
-  char* res = new char[32];
-  im_meta_get_string(img, "colorspace", &res);
-  printf("result: %s\n", res);
-  delete res;
-
-  if( im_close(img) ) {
-    printf("[error] failed to close image %s\n", *src_path);
-  }
-
-  return 0;
-}
-
-int identify_callback (eio_req *req) {
-
-  HandleScope scope;
-
-  ev_unref(EV_DEFAULT_UC);
-  
-  IdentifyData *data = (IdentifyData*)req->data;
-  
-  Local<Value> argv[2];
-  argv[0] = Local<Value>::New(Null());
-  argv[1] = Integer::New(req->result);
-
-  TryCatch try_catch;
-  
-  data->cb->Call(Context::GetCurrent()->Global(), 2, argv);
-  
-  if (try_catch.HasCaught()) {
-    FatalException(try_catch);
-  }
-  
-  data->src_file.Dispose();
-  data->cb.Dispose();
-  
-  delete data;
-  
-  return 0;
-}
-
-
-Handle<Value> Identify(const Arguments& args) {
-  HandleScope scope;
-
-  if (args.Length() < 2){
-    return ThrowException(Exception::Error(
-      String::New("Not enough parameters: identify(image_path, callback)")
-    ));
-  }
-/*
-  if (!Buffer::HasInstance(args[0])) {
-    return ThrowException(Exception::Error(
-      String::New("In identify(image_buffer), image_buffer must be a Buffer.")
-    ));
-  }
-*/
-
-  if (!args[0]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("In identify(image_path, callback), image_path must be a String.")
-    ));
-  } else if (!args[1]->IsFunction()) {
-    return ThrowException(Exception::Error(
-      String::New("In identify(image_path, callback), callback must be a Function.")
-    ));
-  }
-
-  IdentifyData *identify_data = new IdentifyData();
-
-  Persistent<String> src = Persistent<String>::New(args[0]->ToString());
-  identify_data->src_file = src;
-
-  Local<Function> cb = Local<Function>::Cast(args[1]);
-  identify_data->cb  = Persistent<Function>::New(cb);
-
-  eio_custom(identify, EIO_PRI_DEFAULT, identify_callback, identify_data);
-  ev_ref(EV_DEFAULT_UC);
-
-  return scope.Close(String::New("identify"));
-}
-
-}
+}  // anonymous namespace
 
 extern "C" void init(Handle<Object> target) {
   HandleScope scope;
-
-  NODE_SET_METHOD(target, "resize", Resize);
-  NODE_SET_METHOD(target, "rotate", Rotate);
-  NODE_SET_METHOD(target, "identify", Identify);
-  
-  g_type_init();
+  NODE_SET_METHOD(target, "resize", ResizeAsync);
+  NODE_SET_METHOD(target, "rotate", RotateAsync);
 };
-
-
