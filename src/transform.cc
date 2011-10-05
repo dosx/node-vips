@@ -204,8 +204,8 @@ int DoTransform(int cols, int rows, bool crop_to_size,
     if (crop_to_size && fabs(xs - ys) > 0.001) {
       int width = std::min(cur->Xsize, cols);
       int height = std::min(cur->Ysize, rows);
-      int left = (cur->Xsize - width) / 2;
-      int top = (cur->Ysize - height) / 2;
+      int left = (cur->Xsize - width + 1) / 2;
+      int top = (cur->Ysize - height + 1) / 2;
 
       if (DEBUG) {
         fprintf(stderr, "size %dx%d, extract left=%d top=%d "
