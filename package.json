@@ -1,5 +1,5 @@
 {
-  "name": "node-vips",
+  "name": "vips",
   "description": "Vips wrapper for node.js",
   "version": "0.0.1",
   "private": true,
