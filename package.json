@@ -17,7 +17,7 @@
     "npm": "*"
   },
   "author": "erlyco <dev@erly.com>",
-  "main": "beer8",
+  "main": "index",
   "scripts": {
     "test": "nodeunit test/*.js"
   }
