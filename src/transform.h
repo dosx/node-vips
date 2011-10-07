@@ -18,11 +18,11 @@
 // image, and it is rotated to be right side up, and an orientation of '1'
 // is written back to the EXIF.
 //
-// An optional ":compression_level" may be appended to 'dst_path' to set the
-// jpeg compression level if dst_path is a jpeg.
-//
 // Return 0 on success, > 0 if an error and fill in 'err_msg'.
 int DoTransform(int cols, int rows, bool crop_to_size,
                 int rotate_degrees, bool auto_orient,
                 const std::string& src_path, const std::string& dst_path,
                 int* new_width, int* new_height, std::string* err_msg);
+
+// Must be called once before DoTransform.
+void InitTransform(const char* argv0);

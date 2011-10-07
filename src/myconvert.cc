@@ -18,6 +18,8 @@ void Usage() {
 }
 
 int main(int argc, char **argv) {
+  InitTransform(argv[0]);
+
   if (argc < 4) {
     Usage();
     return 1;

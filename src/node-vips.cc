@@ -154,6 +154,7 @@ Handle<Value> RotateAsync(const Arguments& args) {
 }  // anonymous namespace
 
 extern "C" void init(Handle<Object> target) {
+  InitTransform("node-vips.cc" /* don't have argv[0] */);
   HandleScope scope;
   NODE_SET_METHOD(target, "resize", ResizeAsync);
   NODE_SET_METHOD(target, "rotate", RotateAsync);

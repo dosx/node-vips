@@ -5,7 +5,7 @@
 
 var testCase = require('nodeunit').testCase;
 var fs = require('fs');
-var vips = require('../node-vips');
+var vips = require('../index');
 
 var input1 = 'test/input.jpg';
 var input2 = 'test/input2.jpg';
@@ -29,7 +29,7 @@ module.exports = testCase({
     vips.resize(input1, nextOutput(), 170, 170, false, false, function(err, m){
       assert.ok(!err, "unexpected error: " + err);
       assert.equals(170, m.width);
-      assert.equals(127, m.height);
+      assert.equals(128, m.height);
       assert.done();
     });
   },
