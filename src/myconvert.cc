@@ -14,7 +14,8 @@ void Usage() {
   printf("usage: myconvert input output command [options]\n"
 	 "command is one of:\n"
 	 "  resize (options: width height crop_to_size auto_orient)\n"
-	 "  rotate (options: degrees)\n");
+	 "  rotate (options: degrees)\n"
+         "  autorotate ;   rotates according to exif and strips exif\n");
 }
 
 int main(int argc, char **argv) {
@@ -45,6 +46,7 @@ int main(int argc, char **argv) {
     if (DoTransform(width, height, crop_to_size, 0, auto_orient,
 		    argv[1], argv[2], NULL, NULL, &err)) {
       printf("resize failed: %s\n", err.c_str());
+      return 1;
     }
   } else if (strcmp(argv[3], "rotate") == 0) {
     if (argc != 5) {
@@ -62,7 +64,20 @@ int main(int argc, char **argv) {
     std::string err;
     if (DoTransform(-1, -1, false, degrees, false,
 		    argv[1], argv[2], NULL, NULL, &err)) {
-      printf("resize failed: %s\n", err.c_str());
+      printf("rotate failed: %s\n", err.c_str());
+      return 1;
+    }
+  } else if (strcmp(argv[3], "autorotate") == 0) {
+    if (argc != 4) {
+      Usage();
+      return 1;
+    }
+
+    std::string err;
+    if (DoTransform(-1, -1, false, 0, true /* auto-orient */,
+                    argv[1], argv[2], NULL, NULL, &err)) {
+      printf("autorotate failed: %s\n", err.c_str());
+      return 1;
     }
   } else {
     Usage();

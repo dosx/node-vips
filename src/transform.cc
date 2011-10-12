@@ -3,7 +3,26 @@
 //
 // Loosely based on vipsthumbnail.c
 //
-// To compile a test program that uses this:
+// Note on EXIF data:
+//  There are a number of tags that control how the image should be displayed,
+//  among them Exif.Image.Orientation, Exif.Thumbnail.Orientation, and vendor
+//  specific tags like Exif.Panasonic.Rotation.  We only read and write the
+//  Exif.Image.Orientation tag, which seems to be the most well supported and
+//  generally the correct thing to do.  Since we never use the thumbnails
+//  embedded in the image we could potentially strip them out if we wanted to
+//  save space.  Notably we do not call Exiv2::orientation which looks at all
+//  the vendor specific tags, since it may be possible that some library 
+//  rotated the image and stripped Exif.Image.Orientation but left
+//  Exif.Panasonic.Rotation.  Originals taken by panasonics tend to have all
+//  three of those tags set.
+//
+//  We have also seen some photos on Flickr that have Exif.Thumbnail.Orientation
+//  and Exif.Panasonic.Rotation but no Exif.Image.Orientation, for example
+//  http://www.flickr.com/photos/andrewlin12/3717390632/in/set-72157621264148187/ .
+//  We could potentially try to fix these up by stripping the other tags but
+//  that's not necessary to get them to display correctly in the browser.
+//
+// To compile a test program on linux that uses this library:
 //  g++ test.cc src/transform.cc   `pkg-config --cflags --libs vips-7.26`  `pkg-config --cflags --libs exiv2`
 
 #include <ctype.h>
@@ -27,6 +46,8 @@
 using std::string;
 
 static const char kJpegCompressionFactor[] = ":92";
+
+static const char kOrientationTag[] = "Exif.Image.Orientation";
 
 string SimpleItoa(int x) {
   char buf[16];
@@ -56,7 +77,6 @@ class ImageFreer {
 
 // Read EXIF data for image in 'path' and return the rotation needed to turn
 // it right side up.  Return < 0 upon error, and fill in 'err'.
-// TODO(walt): look at IFD0, not IFD1 (which applies to thumbnail).
 static int GetEXIFRotationNeeded(const string& path, string* err) {
   int orientation = 0;
   try {
@@ -64,9 +84,13 @@ static int GetEXIFRotationNeeded(const string& path, string* err) {
     assert(image.get() != 0);
     image->readMetadata();
     Exiv2::ExifData &ed = image->exifData();
-    Exiv2::ExifData::const_iterator it = Exiv2::orientation(ed);
+    Exiv2::ExifData::const_iterator it =
+      ed.findKey(Exiv2::ExifKey(kOrientationTag));
     if (it != ed.end() && it->count() == 1) {
       orientation = it->toLong();
+    } else if (it != ed.end()) {
+      err->assign("bogus value for orientation tag count");
+      return -1;
     } else {
       return 0;
     }
@@ -96,7 +120,7 @@ static int WriteEXIFOrientation(const string& path, uint16_t orientation) {
     Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(path);
     assert(image.get() != 0);
     image->readMetadata();
-    image->exifData()["Exif.Image.Orientation"] = orientation;
+    image->exifData()[kOrientationTag] = orientation;
     image->writeMetadata();
     return 0;
   } catch (Exiv2::Error& e) {
@@ -199,7 +223,7 @@ VipsImage* Rotate(VipsImage* in, int degrees) {
 // jpeg.
 static string GetSourcePathWithOptions(const string& p, const string& format,
                                        int new_x, int new_y, bool crop) {
-  if (format != "jpeg") {
+  if (format != "jpeg" || new_x < 0 || new_y < 0) {
     return p;
   }
 
