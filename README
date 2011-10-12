@@ -1,0 +1,2 @@
+A node.js module that provides access to the VIPS library and Exiv2 in order
+to resize and rotate images.
