@@ -23,7 +23,7 @@
 //  that's not necessary to get them to display correctly in the browser.
 //
 // To compile a test program on linux that uses this library:
-//  g++ test.cc src/transform.cc   `pkg-config --cflags --libs vips-7.26`  `pkg-config --cflags --libs exiv2`
+//  g++ -o myconvert  src/myconvert.cc src/transform.cc   `pkg-config --cflags --libs vips-7.26`  `pkg-config --cflags --libs exiv2`
 
 #include <ctype.h>
 #include <math.h>
@@ -103,12 +103,14 @@ static int GetEXIFRotationNeeded(const string& path, string* err) {
   // We only expect values of 1, 3, 6, 8, see
   // http://www.impulseadventure.com/photo/exif-orientation.html
   switch (orientation) {
+  case 0:    return 0;  // bogus, but sometimes it is set this way
   case 1:    return 0;
   case 3:    return 180;
   case 6:    return 90;
   case 8:    return 270;
   default:
-    err->assign("unexpected orientation value");
+    err->assign("unexpected orientation value: ");
+    err->append(SimpleItoa(orientation));
     return -1;
   }
 }
