@@ -8,6 +8,7 @@
     "url": "git://github.com/dosx/node-vips.git"
   },
   "dependencies": {
+    "imagemagick": "0.1.2",
     "nodeunit": "=0.5.5"
   },
   "devDependencies": {

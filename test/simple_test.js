@@ -5,6 +5,7 @@
 
 var testCase = require('nodeunit').testCase;
 var fs = require('fs');
+var imagemagick = require('imagemagick');
 var vips = require('../index');
 
 var input1 = 'test/input.jpg';
@@ -75,9 +76,17 @@ module.exports = testCase({
 
 
   test_rotate_basic: function(assert) {
-    vips.rotate(input1, nextOutput(), 90, function(err, metadata){
+    var output = nextOutput();
+    vips.rotate(input2, output, 90, function(err, metadata){
       assert.ok(!err, "unexpected error: " + err);
-      assert.done();
+
+      // Ensure that the dimensions of the new rotated photo are correct.
+      imagemagick.identify(output, function(err, metadata) {
+        assert.ok(!err, "unexpected error: " + err);
+        assert.equals(1920, metadata.height);
+        assert.equals(1200, metadata.width);
+        assert.done();
+      });
     });
   },
   test_rotate_error_not_found: function(assert) {
