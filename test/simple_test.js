@@ -62,6 +62,13 @@ module.exports = testCase({
       assert.done();
     });
   },
+  test_resize_bogus_orientation_tag: function(assert) {
+    vips.resize("test/bogus_value_for_orientation_tag.jpg", nextOutput(),
+                100, 100, true, true, function(err, metadata) {
+      assert.ok(!err, "unexpected error: " + err);
+      assert.done();
+    });
+  },
 
   // Note: this test will crash if vips is compiled with imagemagick support
   // because imagemagick crashes when called from libeio.  If vips does not

@@ -75,6 +75,14 @@ class ImageFreer {
   std::vector<VipsImage*> v_;
 };
 
+// Set an error message from the vips buffer, and clear it.
+static void SetFromVipsError(string* out, const char* msg) {
+  out->assign(msg);
+  out->append(": ");
+  out->append(vips_error_buffer());
+  vips_error_clear();
+}
+
 // Read EXIF data for image in 'path' and return the rotation needed to turn
 // it right side up.  Return < 0 upon error, and fill in 'err'.
 static int GetEXIFRotationNeeded(const string& path, string* err) {
@@ -89,8 +97,9 @@ static int GetEXIFRotationNeeded(const string& path, string* err) {
     if (it != ed.end() && it->count() == 1) {
       orientation = it->toLong();
     } else if (it != ed.end()) {
-      err->assign("bogus value for orientation tag count");
-      return -1;
+      fprintf(stderr, "bogus orientation tag count %ld for %s\n",
+              it->count(), path.c_str());
+      return 0;
     } else {
       return 0;
     }
@@ -103,15 +112,17 @@ static int GetEXIFRotationNeeded(const string& path, string* err) {
   // We only expect values of 1, 3, 6, 8, see
   // http://www.impulseadventure.com/photo/exif-orientation.html
   switch (orientation) {
-  case 0:    return 0;  // bogus, but sometimes it is set this way
   case 1:    return 0;
   case 3:    return 180;
   case 6:    return 90;
   case 8:    return 270;
   default:
-    err->assign("unexpected orientation value: ");
-    err->append(SimpleItoa(orientation));
-    return -1;
+    // Don't error out on bogus values, just assume no rotation needed.
+    if (DEBUG) {
+      fprintf(stderr, "unexpected orientation value %d for %s\n",
+              orientation, path.c_str());
+    }
+    return 0;
   }
 }
 
@@ -278,7 +289,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
 
   VipsFormatClass* format = vips_format_for_file(src_path.c_str());
   if (format == NULL) {
-    err_msg->assign("bad format");
+    SetFromVipsError(err_msg, "could not open file");
     return -1;
   }
 
@@ -311,8 +322,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
                                         crop_to_size);
     in = vips_image_new_mode(p.c_str(), "rd");
     if (in == NULL) {
-      err_msg->assign("could not open input: ");
-      err_msg->append(vips_error_buffer());
+      SetFromVipsError(err_msg, "could not open input");
       return -1;
     }
     freer.add(in);
@@ -320,8 +330,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
     p = GetDestPathWithOptions(dst_path, imgformat);
     out = vips_image_new_mode(p.c_str(), "w");
     if (out == NULL) {
-      err_msg->assign("could not open output: ");
-      err_msg->append(vips_error_buffer());
+      SetFromVipsError(err_msg, "could not open output");
       return -1;
     }
     
@@ -333,8 +342,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
   if (cols > 0 && rows > 0) {
     img = ResizeAndCrop(img, cols, rows, crop_to_size);
     if (img == NULL) {
-      err_msg->assign("resize and crop failed: ");
-      err_msg->append(vips_error_buffer());
+      SetFromVipsError(err_msg, "resize and crop failed");
       return -1;
     }
   }
@@ -343,8 +351,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
   if (rotate_degrees > 0) {
     img = Rotate(img, rotate_degrees);
     if (img == NULL) {
-      err_msg->assign("rotate failed: ");
-      err_msg->append(vips_error_buffer());
+      SetFromVipsError(err_msg, "rotate failed");
       return -1;
     }
   }
