@@ -378,6 +378,8 @@ int DoTransform(int cols, int rows, bool crop_to_size,
 
 void InitTransform(const char* argv0) {
   assert(vips_init(argv0) == 0);
-  Exiv2::XmpParser::initialize();
+
+  // Need to initialize XmpParser before any threads.
   // TODO(walt): when we switch to a newer version of libexiv2, provide a mutex.
+  Exiv2::XmpParser::initialize();
 }
