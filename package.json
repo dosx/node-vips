@@ -1,7 +1,7 @@
 {
   "name": "vips",
   "description": "Vips wrapper for node.js",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "repository": {
     "type": "git",
