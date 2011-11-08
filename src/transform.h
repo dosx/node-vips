@@ -1,6 +1,9 @@
 // Copyright Erly Inc 2011, All Rights Reserved
 // Authors: Walt Lin, Bo Wang
 
+#ifndef NODE_VIPS_TRANSFORM_H__
+#define NODE_VIPS_TRANSFORM_H__
+
 #include <string>
 
 // Transform: resize and/or rotate an image.
@@ -26,3 +29,5 @@ int DoTransform(int cols, int rows, bool crop_to_size,
 
 // Must be called once before DoTransform.
 void InitTransform(const char* argv0);
+
+#endif  // NODE_VIPS_TRANSFORM_H__

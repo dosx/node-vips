@@ -71,17 +71,17 @@ struct TransformCall {
     auto_orient(false), new_width(0), new_height(0) {}
 };
 
-#if ((NODE_MAJOR_VERSION) == 0 && (NODE_MINOR_VERSION) == 4)
-int EIO_Transform(eio_req *req) {
+#if NODE_VERSION_AT_LEAST(0, 6, 0)
+void EIO_Transform(eio_req *req) {
   TransformCall* t = static_cast<TransformCall*>(req->data);
-  return DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
+  DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
 		     t->auto_orient, t->src_path, t->dst_path,
                      &t->new_width, &t->new_height, &t->err_msg);
 }
 #else
-void EIO_Transform(eio_req *req) {
+int EIO_Transform(eio_req *req) {
   TransformCall* t = static_cast<TransformCall*>(req->data);
-  DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
+  return DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
 		     t->auto_orient, t->src_path, t->dst_path,
                      &t->new_width, &t->new_height, &t->err_msg);
 }
