@@ -17,7 +17,7 @@ def configure(conf):
   conf.check_tool("compiler_cc")
   conf.check_tool("node_addon")
   o = Options.options
-  libpath  = ['/usr/lib', '/usr/local/lib', '/opt/local/lib']
+  libpath  = ['/usr/lib', '/opt/local/lib']
   includes = ['/usr/include', '/usr/local/include', '/opt/local/include']
   conf.check_cfg(package='vips-7.26',
                  args='--cflags --libs',
