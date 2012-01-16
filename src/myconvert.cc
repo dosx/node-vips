@@ -15,7 +15,7 @@ void Usage() {
 	 "command is one of:\n"
 	 "  resize (options: width height crop_to_size auto_orient)\n"
 	 "  rotate (options: degrees)\n"
-         "  autorotate ;   rotates according to exif and strips exif\n");
+   "  autorotate ;   rotates according to exif and strips exif\n");
 }
 
 int main(int argc, char **argv) {
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
       Usage();
       return 1;
     }
-    
+
     std::string err;
     if (DoTransform(width, height, crop_to_size, 0, auto_orient,
 		    argv[1], argv[2], NULL, NULL, &err)) {
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
       Usage();
       return 1;
     }
-    
+
     errno = 0;
     int degrees = strtol(argv[4], NULL, 10);
     if (degrees == 0 && errno != 0) {
