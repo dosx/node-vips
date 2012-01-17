@@ -200,6 +200,7 @@ int CreateDone(eio_req *req) {
     Buffer *slowBuffer = Buffer::New(c->pixelData, c->pixelLen);
     argv[0] = Local<Value>::New(Null());
     argv[1] = Local<Value>::New(slowBuffer->handle_);
+    free(c->pixelData);
   }
 
   TryCatch try_catch;
