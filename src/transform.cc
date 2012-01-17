@@ -414,8 +414,6 @@ int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
     err_msg->assign("cannot write as png");
     return -1;
   }
-  printf("size: %d\n", (int)*pixelLen);
-  printf("xres: %f\n", tmp->Xres);
   vips_free(buf);
 
   return 0;

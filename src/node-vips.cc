@@ -187,7 +187,6 @@ Handle<Value> RotateAsync(const Arguments& args) {
 // Done function that invokes a callback.
 int CreateDone(eio_req *req) {
   HandleScope scope;
-  printf("createDone\n");
   CreatePixelCall *c = static_cast<CreatePixelCall*>(req->data);
   ev_unref(EV_DEFAULT_UC);
 
@@ -217,7 +216,6 @@ int CreateDone(eio_req *req) {
 
 Handle<Value> PngPixelAsync(const Arguments& args) {
   HandleScope scope;
-  printf("go\n");
   REQ_NUM_ARG(0, red);
   REQ_NUM_ARG(1, green);
   REQ_NUM_ARG(2, blue);
