@@ -14,6 +14,7 @@
 // The functions will reject images they cannot open.
 
 #include <node.h>
+#include <node_buffer.h>
 #include <node_version.h>
 #include <stdio.h>
 #include <string>
@@ -48,10 +49,8 @@ namespace {
                   String::New("Argument " #I " must be a boolean")));   \
   bool VAR = args[I]->BooleanValue()
 
-
-
 // Data needed for a call to Transform.
-// If cols or rows is <= 0, no resizing is done. 
+// If cols or rows is <= 0, no resizing is done.
 // rotate_degrees must be one of 0, 90, 180, or 270.
 struct TransformCall {
   int  cols;              // resize to this many columns
@@ -70,6 +69,30 @@ struct TransformCall {
     cols(-1), rows(-1), crop_to_size(false), rotate_degrees(0),
     auto_orient(false), new_width(0), new_height(0) {}
 };
+
+// Data needed for a call to Transform.
+// If cols or rows is <= 0, no resizing is done.
+// rotate_degrees must be one of 0, 90, 180, or 270.
+struct CreatePixelCall {
+  unsigned char  red;              // resize to this many columns
+  unsigned char  green;              // and this many rows
+  unsigned char  blue;
+  unsigned char  alpha;    // rotate image by this many degrees
+  char  *pixelData;
+  size_t pixelLen;
+  std::string err_msg;
+  Persistent<Function> cb;
+
+  CreatePixelCall() :
+    red(0), green(0), blue(0), alpha(255) {}
+};
+
+void EIO_CreatePixel(eio_req *req) {
+  CreatePixelCall* cp = static_cast<CreatePixelCall*>(req->data);
+  PNGPixel(cp->red, cp->green, cp->blue, cp->alpha, &cp->pixelData,
+      &cp->pixelLen, &cp->err_msg);
+
+}
 
 #if NODE_VERSION_AT_LEAST(0, 6, 0)
 void EIO_Transform(eio_req *req) {
@@ -92,7 +115,7 @@ int TransformDone(eio_req *req) {
   HandleScope scope;
   TransformCall *c = static_cast<TransformCall*>(req->data);
   ev_unref(EV_DEFAULT_UC);
-  
+
   Local<Value> argv[2];
   if (!c->err_msg.empty()) {  // req->result is NOT set correctly
     // Set up an error object.
@@ -111,8 +134,8 @@ int TransformDone(eio_req *req) {
   if (try_catch.HasCaught()) {
     FatalException(try_catch);
   }
-  
-  c->cb.Dispose();  
+
+  c->cb.Dispose();
   delete c;
   return 0;
 }
@@ -155,8 +178,64 @@ Handle<Value> RotateAsync(const Arguments& args) {
   c->src_path = *String::Utf8Value(input_path);
   c->dst_path = *String::Utf8Value(output_path);
   c->cb = Persistent<Function>::New(cb);
-  
+
   eio_custom(EIO_Transform, EIO_PRI_DEFAULT, TransformDone, c);
+  ev_ref(EV_DEFAULT_UC);
+  return Undefined();
+}
+
+// Done function that invokes a callback.
+int CreateDone(eio_req *req) {
+  HandleScope scope;
+  printf("createDone\n");
+  CreatePixelCall *c = static_cast<CreatePixelCall*>(req->data);
+  ev_unref(EV_DEFAULT_UC);
+
+  Local<Value> argv[2];
+  if (!c->err_msg.empty()) {  // req->result is NOT set correctly
+    // Set up an error object.
+    argv[0] = String::New(c->err_msg.data(), c->err_msg.size());
+    argv[1] = Local<Value>::New(Null());
+  } else {
+    // TODO(nick): use fast buffers
+    Buffer *slowBuffer = Buffer::New(c->pixelData, c->pixelLen);
+    argv[0] = Local<Value>::New(Null());
+    argv[1] = Local<Value>::New(slowBuffer->handle_);
+  }
+
+  TryCatch try_catch;
+  c->cb->Call(Context::GetCurrent()->Global(), 2, argv);
+  if (try_catch.HasCaught()) {
+    FatalException(try_catch);
+  }
+
+  c->cb.Dispose();
+  delete c;
+  return 0;
+}
+
+
+Handle<Value> PngPixelAsync(const Arguments& args) {
+  HandleScope scope;
+  printf("go\n");
+  REQ_NUM_ARG(0, red);
+  REQ_NUM_ARG(1, green);
+  REQ_NUM_ARG(2, blue);
+  REQ_NUM_ARG(3, alpha);
+  REQ_FUN_ARG(4, cb);
+  // REQ_NUM_MAX(red, 255);
+  // REQ_NUM_MAX(green, 255);
+  // REQ_NUM_MAX(blue, 255);
+  // REQ_NUM_MAX(alpha, 255);
+
+  CreatePixelCall *c = new CreatePixelCall;
+  c->red = red;
+  c->green = green;
+  c->blue = blue;
+  c->alpha = alpha;
+  c->cb = Persistent<Function>::New(cb);
+
+  eio_custom(EIO_CreatePixel, EIO_PRI_DEFAULT, CreateDone, c);
   ev_ref(EV_DEFAULT_UC);
   return Undefined();
 }
@@ -168,4 +247,5 @@ extern "C" void init(Handle<Object> target) {
   HandleScope scope;
   NODE_SET_METHOD(target, "resize", ResizeAsync);
   NODE_SET_METHOD(target, "rotate", RotateAsync);
+  NODE_SET_METHOD(target, "createPNGPixel", PngPixelAsync);
 };

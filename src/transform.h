@@ -17,7 +17,7 @@
 //
 // 'rotate_degrees' must be one of 0, 90, 180, or 270.
 //
-// If 'auto_orient' is true, the orientation is read from EXIF data on the 
+// If 'auto_orient' is true, the orientation is read from EXIF data on the
 // image, and it is rotated to be right side up, and an orientation of '1'
 // is written back to the EXIF.
 //
@@ -29,5 +29,10 @@ int DoTransform(int cols, int rows, bool crop_to_size,
 
 // Must be called once before DoTransform.
 void InitTransform(const char* argv0);
+
+// Creates an in memory 1 pixel png with given rgba values (0-255)
+// Return 0 on success, > 0 if an error and fill in 'err_msg'.
+int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
+    unsigned char alpha, char** pixelData, size_t* length, std::string* err_msg);
 
 #endif  // NODE_VIPS_TRANSFORM_H__

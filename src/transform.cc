@@ -11,7 +11,7 @@
 //  generally the correct thing to do.  Since we never use the thumbnails
 //  embedded in the image we could potentially strip them out if we wanted to
 //  save space.  Notably we do not call Exiv2::orientation which looks at all
-//  the vendor specific tags, since it may be possible that some library 
+//  the vendor specific tags, since it may be possible that some library
 //  rotated the image and stripped Exif.Image.Orientation but left
 //  Exif.Panasonic.Rotation.  Originals taken by panasonics tend to have all
 //  three of those tags set.
@@ -183,7 +183,7 @@ static VipsImage* ResizeAndCrop(VipsImage* in, int new_x, int new_y,
             "crop=%d, shrink=%d, residual scale=%f\n",
             x->Xsize, x->Ysize, new_x, new_y, crop, shrink, residual);
   }
-  
+
   // First, shrink an integral amount with im_shrink.  Then, do the leftover
   // part with im_affinei using bilinear interpolation.
   VipsInterpolate* interp = vips_interpolate_bilinear_static();
@@ -245,17 +245,17 @@ static string GetSourcePathWithOptions(const string& p, const string& format,
   if (im == NULL) {
     return p;
   }
-  
+
   int shrink = CalculateShrink(im->Xsize, im->Ysize, new_x, new_y, crop, NULL);
   g_object_unref(im);
   shrink = shrink > 8 ? 8 : shrink > 4 ? 4 : shrink > 2 ? 2 : 1;
   string path = p;
   path.append(":" + SimpleItoa(shrink));
-  
+
   if (DEBUG) {
     fprintf(stderr, "using fast jpeg shrink, factor %d\n", shrink);
   }
-  
+
   return path;
 }
 
@@ -333,7 +333,7 @@ int DoTransform(int cols, int rows, bool crop_to_size,
       SetFromVipsError(err_msg, "could not open output");
       return -1;
     }
-    
+
     vips_object_local(in, out);
   }
 
@@ -383,3 +383,41 @@ void InitTransform(const char* argv0) {
   // TODO(walt): when we switch to a newer version of libexiv2, provide a mutex.
   Exiv2::XmpParser::initialize();
 }
+
+int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
+    unsigned char alpha, char** pixelData, size_t* pixelLen, string* err_msg) {
+  void* buf = vips_malloc(NULL, 1000);
+  if (buf == NULL) {
+    err_msg->assign("can't allocate 1k bytes for tmp image");
+    return -1;
+  }
+
+  VipsImage* tmp = vips_image_new_from_memory(buf, 1, 1, 4, VIPS_FORMAT_UCHAR);
+  if (tmp == NULL) {
+    err_msg->assign("can't create a vips image");
+    return -1;
+  }
+  PEL RGBA[4];
+  RGBA[0] = red;
+  RGBA[1] = green;
+  RGBA[2] = blue;
+  RGBA[3] = alpha;
+  int result = im_draw_flood(tmp, 0, 0, RGBA, NULL);
+  if (result != 0) {
+    err_msg->assign("draw_rect failed.");
+    return -1;
+  }
+  tmp->Xres = 2.835017718860743;
+  tmp->Yres = 2.835017718860743;
+  result = im_vips2bufpng(tmp, NULL, 6, 0, pixelData, pixelLen);
+  if (result != 0) {
+    err_msg->assign("cannot write as png");
+    return -1;
+  }
+  printf("size: %d\n", (int)*pixelLen);
+  printf("xres: %f\n", tmp->Xres);
+  vips_free(buf);
+
+  return 0;
+}
+
