@@ -17,7 +17,9 @@
 #include <node_buffer.h>
 #include <node_version.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
+
 
 #include "transform.h"
 
