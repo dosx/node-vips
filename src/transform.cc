@@ -395,6 +395,7 @@ int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
   VipsImage* tmp = vips_image_new_from_memory(buf, 1, 1, 4, VIPS_FORMAT_UCHAR);
   if (tmp == NULL) {
     err_msg->assign("can't create a vips image");
+    vips_free(buf);
     return -1;
   }
   PEL RGBA[4];
@@ -405,6 +406,7 @@ int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
   int result = im_draw_flood(tmp, 0, 0, RGBA, NULL);
   if (result != 0) {
     err_msg->assign("draw_rect failed.");
+    vips_free(buf);
     return -1;
   }
   tmp->Xres = 2.835017718860743;
@@ -412,6 +414,7 @@ int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
   result = im_vips2bufpng(tmp, NULL, 6, 0, pixelData, pixelLen);
   if (result != 0) {
     err_msg->assign("cannot write as png");
+    vips_free(buf);
     return -1;
   }
   vips_free(buf);
