@@ -19,6 +19,9 @@ def configure(conf):
   o = Options.options
   libpath  = ['/usr/lib', '/opt/local/lib']
   includes = ['/usr/include', '/usr/local/include', '/opt/local/include']
+  conf.check_cfg(package='glib-2.0',
+                 args='--cflags --libs',
+                 uselib_store='Glib2')
   conf.check_cfg(package='vips-7.26',
                  args='--cflags --libs',
                  uselib_store='Vips')
@@ -35,7 +38,7 @@ def build(bld):
   node_vips.includes = [ '/usr/include/glib-2.0',
                          '/usr/lib/x86_64-linux-gnu/glib-2.0/include',
                         ]
-  node_vips.uselib = [ "Vips", "Exiv2" ]
+  node_vips.uselib = [ "Vips", "Exiv2", "Glib2" ]
 
 def test(t):
   Utils.exec_command('make test')
