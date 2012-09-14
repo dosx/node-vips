@@ -72,51 +72,18 @@ struct TransformCall {
     auto_orient(false), new_width(0), new_height(0) {}
 };
 
-// Data needed for a call to Transform.
-// If cols or rows is <= 0, no resizing is done.
-// rotate_degrees must be one of 0, 90, 180, or 270.
-struct CreatePixelCall {
-  unsigned char  red;              // resize to this many columns
-  unsigned char  green;              // and this many rows
-  unsigned char  blue;
-  unsigned char  alpha;    // rotate image by this many degrees
-  char  *pixelData;
-  size_t pixelLen;
-  std::string err_msg;
-  Persistent<Function> cb;
-
-  CreatePixelCall() :
-    red(0), green(0), blue(0), alpha(255) {}
-};
-
-void EIO_CreatePixel(eio_req *req) {
-  CreatePixelCall* cp = static_cast<CreatePixelCall*>(req->data);
-  PNGPixel(cp->red, cp->green, cp->blue, cp->alpha, &cp->pixelData,
-      &cp->pixelLen, &cp->err_msg);
-
-}
-
-#if NODE_VERSION_AT_LEAST(0, 6, 0)
-void EIO_Transform(eio_req *req) {
+void EIO_Transform(uv_work_t *req) {
   TransformCall* t = static_cast<TransformCall*>(req->data);
   DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
-		     t->auto_orient, t->src_path, t->dst_path,
-                     &t->new_width, &t->new_height, &t->err_msg);
+              t->auto_orient, t->src_path, t->dst_path,
+              &t->new_width, &t->new_height, &t->err_msg);
 }
-#else
-int EIO_Transform(eio_req *req) {
-  TransformCall* t = static_cast<TransformCall*>(req->data);
-  return DoTransform(t->cols, t->rows, t->crop_to_size, t->rotate_degrees,
-		     t->auto_orient, t->src_path, t->dst_path,
-                     &t->new_width, &t->new_height, &t->err_msg);
-}
-#endif
 
 // Done function that invokes a callback.
-int TransformDone(eio_req *req) {
+void TransformDone(uv_work_t *req) {
   HandleScope scope;
   TransformCall *c = static_cast<TransformCall*>(req->data);
-  ev_unref(EV_DEFAULT_UC);
+  uv_unref((uv_handle_t*) &req);
 
   Local<Value> argv[2];
   if (!c->err_msg.empty()) {  // req->result is NOT set correctly
@@ -139,7 +106,7 @@ int TransformDone(eio_req *req) {
 
   c->cb.Dispose();
   delete c;
-  return 0;
+  delete req;
 }
 
 // ResizeAsync(input_path, output_path, new_x, new_y, auto_orient, callback)
@@ -162,8 +129,10 @@ Handle<Value> ResizeAsync(const Arguments& args) {
   c->dst_path = *String::Utf8Value(output_path);
   c->cb = Persistent<Function>::New(cb);
 
-  eio_custom(EIO_Transform, EIO_PRI_DEFAULT, TransformDone, c);
-  ev_ref(EV_DEFAULT_UC);
+  uv_work_t *req = new uv_work_t;
+  req->data = c;
+  uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
+  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 
@@ -181,16 +150,40 @@ Handle<Value> RotateAsync(const Arguments& args) {
   c->dst_path = *String::Utf8Value(output_path);
   c->cb = Persistent<Function>::New(cb);
 
-  eio_custom(EIO_Transform, EIO_PRI_DEFAULT, TransformDone, c);
-  ev_ref(EV_DEFAULT_UC);
+  uv_work_t *req = new uv_work_t;
+  req->data = c;
+  uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
+  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 
+// Data needed for a call to CreatePixel.
+struct CreatePixelCall {
+  unsigned char  red;
+  unsigned char  green;
+  unsigned char  blue;
+  unsigned char  alpha;
+  char  *pixelData;
+  size_t pixelLen;
+  std::string err_msg;
+  Persistent<Function> cb;
+
+  CreatePixelCall() :
+    red(0), green(0), blue(0), alpha(255) {}
+};
+
+void EIO_CreatePixel(uv_work_t *req) {
+  CreatePixelCall* cp = static_cast<CreatePixelCall*>(req->data);
+  PNGPixel(cp->red, cp->green, cp->blue, cp->alpha, &cp->pixelData,
+      &cp->pixelLen, &cp->err_msg);
+
+}
+
 // Done function that invokes a callback.
-int CreateDone(eio_req *req) {
+void CreateDone(uv_work_t *req) {
   HandleScope scope;
   CreatePixelCall *c = static_cast<CreatePixelCall*>(req->data);
-  ev_unref(EV_DEFAULT_UC);
+  uv_unref((uv_handle_t*) &req);
 
   Local<Value> argv[2];
   if (!c->err_msg.empty()) {  // req->result is NOT set correctly
@@ -213,9 +206,8 @@ int CreateDone(eio_req *req) {
 
   c->cb.Dispose();
   delete c;
-  return 0;
+  delete req;
 }
-
 
 Handle<Value> PngPixelAsync(const Arguments& args) {
   HandleScope scope;
@@ -236,8 +228,10 @@ Handle<Value> PngPixelAsync(const Arguments& args) {
   c->alpha = alpha;
   c->cb = Persistent<Function>::New(cb);
 
-  eio_custom(EIO_CreatePixel, EIO_PRI_DEFAULT, CreateDone, c);
-  ev_ref(EV_DEFAULT_UC);
+  uv_work_t *req = new uv_work_t;
+  req->data = c;
+  uv_queue_work(uv_default_loop(), req, EIO_CreatePixel, CreateDone);
+  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 

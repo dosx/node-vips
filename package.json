@@ -1,7 +1,7 @@
 {
   "name": "vips",
   "description": "Vips wrapper for node.js",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "private": true,
   "repository": {
     "type": "git",
@@ -9,12 +9,12 @@
   },
   "dependencies": {
     "imagemagick": "0.1.2",
-    "nodeunit": "=0.5.5"
+    "nodeunit": ">=0.7"
   },
   "devDependencies": {
   },
   "engines": {
-    "node": "0.4 || 0.6",
+    "node": ">=0.6",
     "npm": "*"
   },
   "author": "erlyco <dev@erly.com>",

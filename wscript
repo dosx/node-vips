@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 
-import Options, Utils, sys, os
+import Utils, sys, os
 from os import unlink, symlink, popen
 from os.path import exists, islink
 
@@ -16,7 +16,6 @@ def configure(conf):
   conf.check_tool("compiler_cxx")
   conf.check_tool("compiler_cc")
   conf.check_tool("node_addon")
-  o = Options.options
   libpath  = ['/usr/lib', '/opt/local/lib']
   includes = ['/usr/include', '/usr/local/include', '/opt/local/include']
   conf.check_cfg(package='glib-2.0',
