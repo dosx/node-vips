@@ -5,10 +5,10 @@ all: test
 build: clean configure compile
 
 configure:
-	node-waf configure
+	PKG_CONFIG_PATH=/usr/local/Library/Homebrew/pkgconfig node-waf configure
 
 compile:
-	node-waf build 
+	node-waf build
 
 test: build
 	@./node_modules/nodeunit/bin/nodeunit \

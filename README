@@ -1,2 +1,5 @@
 A node.js module that provides access to the VIPS library and Exiv2 in order
 to resize and rotate images.
+
+Requires VIPS version 0.26 or older.  Newer vips libraries don't currently
+work with node-vips.
