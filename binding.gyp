@@ -2,11 +2,18 @@
     'targets': [{
         'target_name': 'vips',
         'sources': [
-            'src/myconvert.cc',
             'src/node-vips.cc',
-            'src/transform.cc',
-            'src/transform.h'
+            'src/transform.cc'
         ], 
-        'libraries': ['-lglib2', '-lvips', '-lexiv2']
+        'libraries': [
+            'pkg-config --cflags glib-2.0', 
+            'pkg-config --cflags vips', 
+            'pkg-config --cflags exiv2'
+        ],
+        'include_dirs': [
+            '/usr/include/glib-2.0', 
+            '/usr/lib/glib-2.0/include',
+            '/usr/lib/x86_64-linux-gnu/glib-2.0/include'
+        ]
     }]
 }
