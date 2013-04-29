@@ -61,7 +61,7 @@ class ImageFreer {
   ImageFreer() {}
 
   ~ImageFreer() {
-    for (int i = 0; i < v_.size(); i++) {
+    for (uint i = 0; i < v_.size(); i++) {
       if (v_[i] != NULL) {
         g_object_unref(v_[i]);
       }
