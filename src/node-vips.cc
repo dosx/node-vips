@@ -245,4 +245,4 @@ extern "C" void init(Handle<Object> target) {
   NODE_SET_METHOD(target, "createPNGPixel", PngPixelAsync);
 };
 
-NODE_MODULE(vips, init);
+NODE_MODULE(vips, init)
