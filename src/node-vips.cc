@@ -32,7 +32,7 @@ namespace {
 
 #define REQ_FUN_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsFunction())                   \
-    return ThrowException(Exception::TypeError(		                \
+    return ThrowException(Exception::TypeError(  	                \
                   String::New("Argument " #I " must be a function")));  \
   Local<Function> VAR = Local<Function>::Cast(args[I])
 #define REQ_NUM_ARG(I, VAR)                                             \
@@ -80,7 +80,7 @@ void EIO_Transform(uv_work_t *req) {
 }
 
 // Done function that invokes a callback.
-void TransformDone(uv_work_t *req) {
+void TransformDone(uv_work_t *req, int status) {
   HandleScope scope;
   TransformCall *c = static_cast<TransformCall*>(req->data);
   uv_unref((uv_handle_t*) &req);
@@ -180,7 +180,7 @@ void EIO_CreatePixel(uv_work_t *req) {
 }
 
 // Done function that invokes a callback.
-void CreateDone(uv_work_t *req) {
+void CreateDone(uv_work_t *req, int status) {
   HandleScope scope;
   CreatePixelCall *c = static_cast<CreatePixelCall*>(req->data);
   uv_unref((uv_handle_t*) &req);
