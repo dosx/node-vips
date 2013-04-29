@@ -5,10 +5,9 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git://github.com/dosx/node-vips.git"
+    "url": "git://github.com/jvaldron/node-vips.git"
   },
   "dependencies": {
-    "imagemagick": "0.1.2",
     "nodeunit": ">=0.7"
   },
   "devDependencies": {
