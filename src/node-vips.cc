@@ -244,3 +244,5 @@ extern "C" void init(Handle<Object> target) {
   NODE_SET_METHOD(target, "rotate", RotateAsync);
   NODE_SET_METHOD(target, "createPNGPixel", PngPixelAsync);
 };
+
+NODE_MODULE(vips, init);
