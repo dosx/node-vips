@@ -6,14 +6,16 @@
             'src/transform.cc'
         ], 
         'libraries': [
-            'pkg-config --cflags glib-2.0', 
-            'pkg-config --cflags vips', 
-            'pkg-config --cflags exiv2'
+            '<!@(PKG_CONFIG_PATH="/usr/local/lib/pkgconfig" pkg-config --cflags glib-2.0)', 
+            '<!@(PKG_CONFIG_PATH="/usr/local/lib/pkgconfig" pkg-config --cflags vips)', 
+            '<!@(PKG_CONFIG_PATH="/usr/local/lib/pkgconfig" pkg-config --cflags exiv2)'
         ],
         'include_dirs': [
             '/usr/include/glib-2.0', 
             '/usr/lib/glib-2.0/include',
             '/usr/lib/x86_64-linux-gnu/glib-2.0/include'
-        ]
+        ],
+        'cflags': [ '-fexceptions' ],
+        'cflags_cc': [ '-fexceptions' ]
     }]
 }
