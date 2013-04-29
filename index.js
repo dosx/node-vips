@@ -1,6 +1,6 @@
 try {
-  module.exports = require('./build/Release/vips');
+  module.exports = require('./build/default/node-vips');
 } catch(e) {
-  //for < v0.5.5+
-  module.exports = require('./build/default/vips');
+  //update for v0.5.5+
+  module.exports = require('./build/Release/node-vips');
 }
