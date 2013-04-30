@@ -61,7 +61,7 @@ class ImageFreer {
   ImageFreer() {}
 
   ~ImageFreer() {
-    for (int i = 0; i < v_.size(); i++) {
+    for (uint i = 0; i < v_.size(); i++) {
       if (v_[i] != NULL) {
         g_object_unref(v_[i]);
       }
@@ -231,46 +231,6 @@ VipsImage* Rotate(VipsImage* in, int degrees) {
   return r ? NULL : tmp;
 }
 
-// Return the path to open the source image with.  libjpeg supports
-// fast shrink-on-read, so load a lower resolution version if it's a
-// jpeg.
-static string GetSourcePathWithOptions(const string& p, const string& format,
-                                       int new_x, int new_y, bool crop) {
-  if (format != "jpeg" || new_x < 0 || new_y < 0) {
-    return p;
-  }
-
-  // This just reads the header, it's fast.
-  VipsImage* im = vips_image_new_from_file(p.c_str());
-  if (im == NULL) {
-    return p;
-  }
-
-  int shrink = CalculateShrink(im->Xsize, im->Ysize, new_x, new_y, crop, NULL);
-  g_object_unref(im);
-  shrink = shrink > 8 ? 8 : shrink > 4 ? 4 : shrink > 2 ? 2 : 1;
-  string path = p;
-  path.append(":" + SimpleItoa(shrink));
-
-  if (DEBUG) {
-    fprintf(stderr, "using fast jpeg shrink, factor %d\n", shrink);
-  }
-
-  return path;
-}
-
-// Return the path to open the target image with.  If the image is a
-// jpeg, add jpeg compression factor options.
-static string GetDestPathWithOptions(const string& p, const string& format) {
-  if (format == "jpeg") {
-    string str = p;
-    str.append(kJpegCompressionFactor);
-    return str;
-  } else {
-    return p;
-  }
-}
-
 int DoTransform(int cols, int rows, bool crop_to_size,
 		int rotate_degrees, bool auto_orient,
 		const string& src_path, const string& dst_path,
@@ -318,17 +278,14 @@ int DoTransform(int cols, int rows, bool crop_to_size,
   // Open the input and output images.
   VipsImage *in, *out;
   {
-    string p = GetSourcePathWithOptions(src_path, imgformat, cols, rows,
-                                        crop_to_size);
-    in = vips_image_new_mode(p.c_str(), "rd");
+    in = vips_image_new_mode(src_path.c_str(), "rd");
     if (in == NULL) {
       SetFromVipsError(err_msg, "could not open input");
       return -1;
     }
     freer.add(in);
 
-    p = GetDestPathWithOptions(dst_path, imgformat);
-    out = vips_image_new_mode(p.c_str(), "w");
+    out = vips_image_new_mode(dst_path.c_str(), "w");
     if (out == NULL) {
       SetFromVipsError(err_msg, "could not open output");
       return -1;
@@ -421,4 +378,3 @@ int PNGPixel(unsigned char red, unsigned char green, unsigned char blue,
 
   return 0;
 }
-
