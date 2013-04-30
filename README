@@ -1,6 +1,10 @@
 A node.js module that provides access to the VIPS library and Exiv2 in order
 to resize and rotate images.
 
-Updated from node-waf to node-gyp. 
+Updated from node-waf to node-gyp.
 
 Tested with VIPS 7.32.1.
+
+Homebrew users note: vips and exiv2 have moved to homebrew/science, to use run
+`brew tap homebrew/science` then run `brew install vips` and `brew install
+exiv2` as normal.

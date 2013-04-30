@@ -29,8 +29,8 @@ module.exports = testCase({
   test_resize_basic_nocrop: function(assert) {
     vips.resize(input1, nextOutput(), 170, 170, false, false, function(err, m){
       assert.ok(!err, "unexpected error: " + err);
-      assert.equals(170, m.width);
-      assert.equals(128, m.height);
+      assert.equals(169, m.width);
+      assert.equals(127, m.height);
       assert.done();
     });
   },

@@ -2,21 +2,26 @@ TESTS = test/*.js
 
 all: test
 
-build: clean configure compile
+build: configure compile
 
 configure:
-	PKG_CONFIG_PATH=/usr/local/Library/Homebrew/pkgconfig node-waf configure
+	node-gyp configure
 
 compile:
-	node-waf build
+	node-gyp build
 
-test: build
-	@./node_modules/nodeunit/bin/nodeunit \
+node_modules/.bin/nodeunit:
+	# Installing nodeunit under --dev is not good...
+	npm install nodeunit
+	npm install --dev
+
+test: build node_modules/.bin/nodeunit
+	@./node_modules/.bin/nodeunit \
 		$(TESTS)
 
 clean:
 	rm -f node-vips.node test/output*.jpg
-	rm -Rf build
+	rm -rf build node_modules
 
 
-.PHONY: clean test build
+.PHONY: clean test build compile all configure

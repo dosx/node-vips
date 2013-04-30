@@ -8,13 +8,13 @@
     "url": "git://github.com/dosx/node-vips.git"
   },
   "dependencies": {
-    "nodeunit": ">=0.7"
   },
   "devDependencies": {
+    "nodeunit": ">=0.7",
+    "imagemagick": "*"
   },
   "engines": {
-    "node": ">=0.6",
-    "npm": "*"
+    "node": ">=0.8"
   },
   "author": "erlyco <dev@erly.com>",
   "main": "index",

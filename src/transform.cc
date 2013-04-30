@@ -61,7 +61,7 @@ class ImageFreer {
   ImageFreer() {}
 
   ~ImageFreer() {
-    for (uint i = 0; i < v_.size(); i++) {
+    for (uint16_t i = 0; i < v_.size(); i++) {
       if (v_[i] != NULL) {
         g_object_unref(v_[i]);
       }
@@ -104,8 +104,7 @@ static int GetEXIFRotationNeeded(const string& path, string* err) {
       return 0;
     }
   } catch (Exiv2::Error& e) {
-    err->assign("exiv2 error: ");
-    err->append(e.what());
+    err->assign("exiv2 error");
     return -1;
   }
 
@@ -137,7 +136,7 @@ static int WriteEXIFOrientation(const string& path, uint16_t orientation) {
     image->writeMetadata();
     return 0;
   } catch (Exiv2::Error& e) {
-    printf("exiv2 error writing orientation: %s\n", e.what());
+    //printf("exiv2 error writing orientation: %s\n", e.what());
     return -1;
   }
 }

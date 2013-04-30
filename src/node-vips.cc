@@ -83,7 +83,6 @@ void EIO_Transform(uv_work_t *req) {
 void TransformDone(uv_work_t *req, int status) {
   HandleScope scope;
   TransformCall *c = static_cast<TransformCall*>(req->data);
-  uv_unref((uv_handle_t*) &req);
 
   Local<Value> argv[2];
   if (!c->err_msg.empty()) {  // req->result is NOT set correctly
@@ -132,7 +131,6 @@ Handle<Value> ResizeAsync(const Arguments& args) {
   uv_work_t *req = new uv_work_t;
   req->data = c;
   uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
-  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 
@@ -153,7 +151,6 @@ Handle<Value> RotateAsync(const Arguments& args) {
   uv_work_t *req = new uv_work_t;
   req->data = c;
   uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
-  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 
@@ -183,7 +180,6 @@ void EIO_CreatePixel(uv_work_t *req) {
 void CreateDone(uv_work_t *req, int status) {
   HandleScope scope;
   CreatePixelCall *c = static_cast<CreatePixelCall*>(req->data);
-  uv_unref((uv_handle_t*) &req);
 
   Local<Value> argv[2];
   if (!c->err_msg.empty()) {  // req->result is NOT set correctly
@@ -231,7 +227,6 @@ Handle<Value> PngPixelAsync(const Arguments& args) {
   uv_work_t *req = new uv_work_t;
   req->data = c;
   uv_queue_work(uv_default_loop(), req, EIO_CreatePixel, CreateDone);
-  uv_ref((uv_handle_t*) &req);
   return Undefined();
 }
 
