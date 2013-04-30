@@ -15,6 +15,9 @@
             '/usr/lib/glib-2.0/include',
             '/usr/lib/x86_64-linux-gnu/glib-2.0/include'
         ],
+        'link_settings': { 
+            'ldflags': [ '-lglib-2.0', '-lvips', '-lexiv2' ], 
+        }, 
         'cflags': [ '-fexceptions' ],
         'cflags_cc': [ '-fexceptions' ]
     }]
