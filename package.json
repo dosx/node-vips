@@ -5,7 +5,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git://github.com/jvaldron/node-vips.git"
+    "url": "git://github.com/dosx/node-vips.git"
   },
   "dependencies": {
     "nodeunit": ">=0.7"
