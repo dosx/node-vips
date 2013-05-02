@@ -130,7 +130,7 @@ Handle<Value> ResizeAsync(const Arguments& args) {
 
   uv_work_t *req = new uv_work_t;
   req->data = c;
-  uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
+  uv_queue_work(uv_default_loop(), req, EIO_Transform, (uv_after_work_cb)TransformDone);
   return Undefined();
 }
 
@@ -150,7 +150,7 @@ Handle<Value> RotateAsync(const Arguments& args) {
 
   uv_work_t *req = new uv_work_t;
   req->data = c;
-  uv_queue_work(uv_default_loop(), req, EIO_Transform, TransformDone);
+  uv_queue_work(uv_default_loop(), req, EIO_Transform, (uv_after_work_cb)TransformDone);
   return Undefined();
 }
 
@@ -226,7 +226,7 @@ Handle<Value> PngPixelAsync(const Arguments& args) {
 
   uv_work_t *req = new uv_work_t;
   req->data = c;
-  uv_queue_work(uv_default_loop(), req, EIO_CreatePixel, CreateDone);
+  uv_queue_work(uv_default_loop(), req, EIO_CreatePixel, (uv_after_work_cb)CreateDone);
   return Undefined();
 }
 
